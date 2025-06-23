@@ -1,0 +1,15 @@
+python-telegram-bot==20.7
+playwright==1.41.2
+papermill==2.6.0
+nbformat==5.9.2
+pandas==2.2.0
+numpy==1.26.3
+python-dateutil==2.8.2
+APScheduler==3.10.4
+requests==2.31.0
+openpyxl==3.1.2
+jupyter==1.0.0
+ipykernel==6.29.0
+xvfbwrapper==0.2.9
+pytz
+rapidfuzz 

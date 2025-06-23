@@ -1,0 +1,169 @@
+# Goldfinger Server Operations Guide
+
+## 1. Connecting to Server
+
+### Goldfinger Server
+```bash
+ssh root@208.76.221.81
+```
+Password: `6_nWJN_7DB3XwM4y`
+
+## Quick File Transfers
+
+### Pull all files from GF server
+```bash
+scp -r root@208.76.221.81:/root/gf_bot/* .
+```
+
+### Push all files to GF server
+```bash
+scp -r ./* root@208.76.221.81:/root/gf_bot/
+```
+
+## 2. Daily Bot Startup Procedure
+```bash
+# Start virtual display
+Xvfb :99 -screen 0 1024x768x24 &
+
+# Set display environment
+export DISPLAY=:99
+
+# Navigate to bot directory (adjust path as needed)
+cd /path/to/bot/directory
+```
+
+## 2a. Running the Bot in the Background (Recommended: nohup)
+```bash
+# 1. Stop any running bot processes (clean start)
+pkill -f bot_serv-GF.py
+
+# 2. Check if any bot processes exist (should see none except the grep command)
+ps aux | grep bot_serv-GF
+
+# 3. Go to the bot directory
+cd /root/gf_bot
+
+# 4. Start the bot in the background with nohup
+nohup python3 bot_serv-GF.py > bot.log 2>&1 &
+
+# 5. Verify it's running in the background
+ps aux | grep python3
+
+# 6. Check the logs to make sure it's working
+tail -f bot.log
+# (Press Ctrl+C to stop viewing the log, the bot keeps running)
+
+# 7. Safely exit SSH
+exit
+```
+- The bot will keep running in the background after you disconnect or turn off your laptop.
+- All output will be saved to `bot.log`.
+- To stop the bot later, use `pkill -f bot_serv-GF.py`.
+
+## 2b. Checking if the Bot is Running
+```bash
+# SSH into your server
+ssh root@208.76.221.81
+
+# Check if the bot process is running
+ps aux | grep bot_serv-GF.py
+# If you see a line with 'python3 bot_serv-GF.py', your bot is running.
+
+# Check the latest log output
+cd /root/gf_bot
+tail -f bot.log
+# (Press Ctrl+C to stop viewing the log)
+```
+
+## 3. Managing Background Sessions
+
+### Using Screen (Recommended)
+```bash
+# Create new screen session
+screen -S gf_bot_session
+
+# List all screen sessions
+screen -ls
+
+# Reattach to existing session
+screen -r gf_bot_session
+
+# Detach from screen (while in session)
+# Press Ctrl+A then D
+
+# Kill a screen session
+screen -X -S gf_bot_session quit
+```
+
+### Using Nohup
+```bash
+# Check if bot is running
+ps aux | grep python
+
+# View nohup output
+tail -f bot_output.log
+```
+
+## 4. File Transfer Commands
+
+### Uploading Files to Server
+```bash
+# Single file upload
+scp /path/to/local/file root@208.76.221.81:/path/on/server
+
+# Upload entire directory
+scp -r /path/to/local/directory root@208.76.221.81:/path/on/server
+```
+
+### Downloading Files from Server
+```bash
+# Download single file
+scp root@208.76.221.81:/path/on/server/file /path/to/local/directory
+
+# Download entire directory
+scp -r root@208.76.221.81:/path/on/server/directory /path/to/local/directory
+```
+
+## 5. Checking Bot Status
+```bash
+# Check if bot is running
+ps aux | grep python
+
+# Check if virtual display is running
+ps aux | grep Xvfb
+
+# Check bot logs
+tail -f bot_server.log
+
+# Check screen sessions
+screen -ls
+```
+
+## 6. Stopping the Bot
+```bash
+# If using screen:
+screen -r gf_bot_session
+# Then press Ctrl+C to stop the bot
+# Then type 'exit' to close the screen session
+
+# If using nohup:
+# Find bot process
+ps aux | grep python
+# Kill the process (replace PID with actual process ID)
+kill PID
+
+# Stop virtual display
+pkill Xvfb
+```
+
+## 7. Common Issues and Solutions
+
+### If virtual display isn't working:
+```bash
+# Kill any existing Xvfb processes
+pkill Xvfb
+
+# Start fresh
+Xvfb :99 -screen 0 1024x768x24 &
+export DISPLAY=:99
+```
