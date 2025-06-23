@@ -109,11 +109,15 @@ group_chats_allowed = [
 ORIGINAL_FILES = [
     '.git',
     'bot_serv-GF.py',
+    'bot_serv-KT_GF_base.py',
     'convert_notebook.py',
     'downloads',
+    'GF_EOM-Rubric.xlsx',
     'GF_Project_3.ipynb',
-    "GF_EOM-Rubric.xlsx",
+    'GF_Project_5.ipynb',
+    'Goldie call',
     'logs',
+    'NEF_Project_5_serv.ipynb',
     'README.md',
     'requirements.txt',
     'server_operations_guide.txt',
@@ -547,7 +551,7 @@ def Playwright_GF_Project_5(playwright):
 
 
 def run_gf_project_5_notebook():
-    notebook_path = "GF_Project_5_serv.ipynb"
+    notebook_path = "GF_Project_5.ipynb"
     output_path = "GF_Project_5_serv_output.ipynb"
     try:
         pm.execute_notebook(
