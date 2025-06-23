@@ -6,7 +6,7 @@
 ```bash
 ssh root@208.76.221.81
 ```
-Password: `6_nWJN_7DB3XwM4y`
+Password: 6_nWJN_7DB3XwM4y
 
 ## Quick File Transfers
 

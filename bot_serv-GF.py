@@ -117,6 +117,7 @@ ORIGINAL_FILES = [
     'README.md',
     'requirements.txt',
     'server_operations_guide.txt',
+    'tv_database_gf.xlsx',
 ]
 
 # ----------------------------------------------------------------- General Functions -------------------------------------------------------------------------------------------------------------
@@ -429,6 +430,220 @@ async def call_Project_3_GF(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=chat_id,
             text=f"❌ An error occurred: {e}"
         )
+
+# ----------------------------------------------------------------- GOLDFINGER PROJECT 5 (TV) -------------------------------------------------------------------------------------------------------------
+
+def Playwright_GF_Project_5(playwright):
+    from datetime import datetime
+    import os
+    import time
+
+    max_retries = 3
+    retry_delay = 5  # seconds
+
+    filename = f"Project5_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    final_path = os.path.join(DOWNLOAD_DIR, filename)
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"🟢 Attempt {attempt}: Starting TV Playwright automation...")
+
+            browser = playwright.chromium.launch(
+                headless=False,
+                args=BROWSER_ARGS
+            )
+            context = browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                accept_downloads=True
+            )
+            page = context.new_page()
+
+            # Go to login page
+            logger.info("Navigating to login page...")
+            page.goto("https://goldie.vrio.app/auth/login", wait_until="networkidle")
+
+            # Login with retries
+            login_success = False
+            for login_attempt in range(3):
+                try:
+                    logger.info(f"Login attempt {login_attempt + 1}...")
+                    page.get_by_placeholder("email").click()
+                    page.get_by_placeholder("email").fill("team123@team123proton.com")
+                    page.get_by_placeholder("password").click()
+                    page.get_by_placeholder("password").fill("GFTeam123!@")
+                    page.get_by_role("button", name="Login").click()
+                    page.wait_for_load_state("networkidle")
+                    login_success = True
+                    break
+                except Exception as e:
+                    logger.error(f"Login attempt {login_attempt + 1} failed: {e}")
+                    if login_attempt < 2:
+                        page.reload()
+                        time.sleep(2)
+            if not login_success:
+                raise Exception("Failed to login after multiple attempts")
+
+            # Navigate to Analytics
+            logger.info("Navigating to Analytics...")
+            analytics_link = page.get_by_role("link", name=" Analytics")
+            analytics_link.wait_for(state="visible", timeout=10000)
+            analytics_link.click()
+            page.wait_for_load_state("networkidle")
+
+            # Go to Saved Reports tab
+            logger.info("Opening Saved Reports...")
+            saved_reports_tab = page.get_by_role("tab", name="Saved Reports")
+            saved_reports_tab.wait_for(state="visible", timeout=10000)
+            saved_reports_tab.click()
+            page.wait_for_load_state("networkidle")
+
+            # Open Traffic View 1 (GF-specific)
+            logger.info("Opening Traffic View 1...")
+            traffic_view_selectors = [
+                page.get_by_role("link", name=" Traffic View 1"),
+                page.get_by_text("Traffic View 1"),
+                page.locator("text=Traffic View 1")
+            ]
+            traffic_view_found = False
+            for selector in traffic_view_selectors:
+                try:
+                    selector.wait_for(state="visible", timeout=5000)
+                    selector.click()
+                    traffic_view_found = True
+                    break
+                except Exception as e:
+                    logger.info(f"Selector {selector} failed: {e}")
+                    continue
+            if not traffic_view_found:
+                raise Exception("Could not find Traffic View 1 element")
+            page.wait_for_load_state("networkidle")
+            page.wait_for_timeout(5000)
+
+            # Export the report
+            logger.info("Initiating download...")
+            more_options = page.get_by_role("button", name="More Options ")
+            more_options.wait_for(state="visible", timeout=10000)
+            more_options.click()
+            page.wait_for_timeout(2000)
+            with page.expect_download(timeout=30000) as download_info:
+                logger.info("Pressed Export Report")
+                export_link = page.get_by_role("link", name="Export Report")
+                export_link.wait_for(state="visible", timeout=10000)
+                export_link.click()
+            download = download_info.value
+            download.save_as(final_path)
+            logger.info(f"✅ File downloaded and saved as: {final_path}")
+            context.close()
+            browser.close()
+            return  # Success, exit the retry loop
+        except Exception as e:
+            logger.error(f"Attempt {attempt} failed: {str(e)}")
+            if attempt < max_retries:
+                logger.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                logger.error("All retry attempts failed")
+                raise
+
+
+def run_gf_project_5_notebook():
+    notebook_path = "GF_Project_5_serv.ipynb"
+    output_path = "GF_Project_5_serv_output.ipynb"
+    try:
+        pm.execute_notebook(
+            notebook_path,
+            output_path,
+            kernel_name="python3",
+            cwd=os.getcwd()
+        )
+        print("✅ GF Project 5 notebook executed successfully.")
+        message = None
+        with open(output_path, 'r', encoding='utf-8') as f:
+            nb = nbformat.read(f, as_version=4)
+        for cell in nb['cells']:
+            if cell['cell_type'] == 'code' and 'print(output_message)' in cell.get('source', ''):
+                for output in cell.get('outputs', []):
+                    if 'text' in output:
+                        message = output['text'].strip()
+                        break
+                    elif 'data' in output and 'text/plain' in output['data']:
+                        message = output['data']['text/plain'].strip()
+                        break
+            if message:
+                break
+        if message:
+            print(f"✅ Project 5 output_message extracted:\n{message}")
+        else:
+            print("⚠️ Warning: No output_message found in any print cell.")
+        return True, output_path, message
+    except Exception as e:
+        import traceback
+        traceback_str = traceback.format_exc()
+        print(f"❌ GF Project 5 notebook failed:\n{traceback_str}")
+        return False, traceback_str, None
+
+def output_format_gf5(text):
+    if not text:
+        return text
+    lines = text.split('\n')
+    formatted_lines = []
+    for i, line in enumerate(lines):
+        if i == 0 or ('alert' in line.lower()):
+            formatted_lines.append(f"<b>{line}</b>")
+        else:
+            formatted_lines.append(line)
+    return '\n'.join(formatted_lines)
+
+def send_TV_message_Project_5(chat_id, text, token):
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    data = {
+        "chat_id": "-4873260773",
+        "text": text,
+        "parse_mode": "HTML"
+    }
+    response = requests.post(url, data=data)
+    print(response.text)
+
+
+def main_function_Project_5():
+    max_retries = 3
+    retry_delay = 10  # seconds
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🟢 Attempt {attempt}: Triggered Playwright function for Project 5")
+            with sync_playwright() as playwright:
+                Playwright_GF_Project_5(playwright)
+                success, output_path, message = run_gf_project_5_notebook()
+                if success and message:
+                    formatted_message = output_format_gf5(message)
+                    print(f"🚨 Project 5 output_message:\n{formatted_message}")
+                    try:
+                        # TODO: Replace with your actual GF group chat ID and token
+                        send_TV_message_Project_5("-4873260773", formatted_message, "7710441269:AAFLxf_A5Qjmr02-IzNCo4AbnMRdiUNBr0A")
+                    except Exception as e:
+                        print(f"❌ Failed to send message to Telegram: {e}")
+                else:
+                    print("❌ Failed to get output_message from Project 5 notebook.")
+                    raise Exception("No output message from notebook")
+            print("✅ Project 5 completed")
+            break  # Success, exit the retry loop
+        except Exception as e:
+            print(f"❌ Error in attempt {attempt}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            if attempt < max_retries:
+                print(f"🔄 Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                print("❌ All retry attempts failed")
+                raise
+    # Clean up files
+    current_dir = os.getcwd()
+    delete_unwanted_files(current_dir, ORIGINAL_FILES)
+
+# Start the scheduler for Project 5 (TV)
+scheduler.add_job(main_function_Project_5, 'cron', hour='14-23, 0-4', minute='*/30', misfire_grace_time=120, timezone=pytz.timezone('Europe/Lisbon'))
+scheduler.start()
 
 # ----------------------------------------------------------------- Message Handlers -------------------------------------------------------------------------------------------------------------
 async def handle_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
