@@ -611,6 +611,8 @@ async def call_Project_3_GF(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ----------------------------------------------------------------- GOLDFINGER PROJECT 5 (TV) -------------------------------------------------------------------------------------------------------------
 
+
+
 def Playwright_GF_Project_5(playwright):
     from datetime import datetime
     import os
@@ -782,76 +784,43 @@ def send_TV_message_Project_5(chat_id, text, token):
     response = requests.post(url, data=data)
     print(response.text)
 
-
 def main_function_Project_5():
     max_retries = 3
     retry_delay = 10  # seconds
+
     for attempt in range(1, max_retries + 1):
         try:
-            print(f"🟢 Attempt {attempt}: Triggered Playwright function for Project 5")
+            print(f"🟢 Attempt {attempt}: Triggered Playwright function for Project 5 and 6")
             with sync_playwright() as playwright:
+                # Run Project 5
                 Playwright_GF_Project_5(playwright)
                 success, output_path, message = run_gf_project_5_notebook()
                 if success and message:
                     formatted_message = output_format_gf5(message)
                     print(f"🚨 Project 5 output_message:\n{formatted_message}")
                     try:
-                        # TODO: Replace with your actual GF group chat ID and token
                         send_TV_message_Project_5("-4873260773", formatted_message, "7710441269:AAFLxf_A5Qjmr02-IzNCo4AbnMRdiUNBr0A")
                     except Exception as e:
                         print(f"❌ Failed to send message to Telegram: {e}")
                 else:
                     print("❌ Failed to get output_message from Project 5 notebook.")
                     raise Exception("No output message from notebook")
-            print("✅ Project 5 completed")
-            break  # Success, exit the retry loop
-        except Exception as e:
-            print(f"❌ Error in attempt {attempt}: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            if attempt < max_retries:
-                print(f"🔄 Retrying in {retry_delay} seconds...")
-                time.sleep(retry_delay)
-            else:
-                print("❌ All retry attempts failed")
-                raise
-    # Clean up files
-    current_dir = os.getcwd()
-    delete_unwanted_files(current_dir, ORIGINAL_FILES)
-scheduler.add_job(main_function_Project_5, 'cron', hour='14-23, 0-4', minute='*/30', misfire_grace_time=120, timezone=pytz.timezone('Europe/Lisbon'))
 
-
-def send_TV_message_Project_6(chat_id, text, token):
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    data = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "HTML"
-    }
-    response = requests.post(url, data=data)
-    print(response.text)
-
-def main_function_Project_6():
-    max_retries = 3
-    retry_delay = 10  # seconds
-    for attempt in range(1, max_retries + 1):
-        try:
-            print(f"🟢 Attempt {attempt}: Triggered Playwright function for Project 6")
-            with sync_playwright() as playwright:
+                # Run Project 6
                 Playwright_GF_Project_6(playwright)
                 success, output_path, message = run_gf_project_6_notebook()
                 if success and message:
                     formatted_message = output_format_gf6(message)
                     print(f"🚨 Project 6 output_message:\n{formatted_message}")
                     try:
-                        # TODO: Replace with your actual GF group chat ID and token for Project 6
-                        send_TV_message_Project_6("-4933759782", formatted_message, "7710441269:AAFLxf_A5Qjmr02-IzNCo4AbnMRdiUNBr0A")
+                        send_TV_message_Project_5("-4933759782", formatted_message, "7710441269:AAFLxf_A5Qjmr02-IzNCo4AbnMRdiUNBr0A")
                     except Exception as e:
                         print(f"❌ Failed to send message to Telegram: {e}")
                 else:
                     print("❌ Failed to get output_message from Project 6 notebook.")
                     raise Exception("No output message from notebook")
-            print("✅ Project 6 completed")
+
+            print("✅ Project 5 and Project 6 completed")
             break  # Success, exit the retry loop
         except Exception as e:
             print(f"❌ Error in attempt {attempt}: {str(e)}")
@@ -866,6 +835,10 @@ def main_function_Project_6():
     # Clean up files
     current_dir = os.getcwd()
     delete_unwanted_files(current_dir, ORIGINAL_FILES)
+
+    # Start the scheduler for Project 5 and Project 6 - runs at :01 and :31
+scheduler.add_job(main_function_Project_5, 'cron', hour='14-23, 0-4', minute='*/30', misfire_grace_time=120, timezone=pytz.timezone('Europe/Lisbon'))
+scheduler.start() 
 
 # ----------------------------------------------------------   GF PROJECT 6  -------------------------------------------------------------------------------------------------------------
 def Playwright_GF_Project_6(playwright: Playwright) -> None:
@@ -1227,6 +1200,3 @@ if __name__ == "__main__":
     logger.info("🤖 Goldfinger Bot is running... Drop a file with a mention to start processing.")
     app.run_polling()
 
-# Start the scheduler for Project 6 - runs at :01 and :31
-scheduler.add_job(main_function_Project_6, 'cron', hour='14-23, 0-4', minute='1,31', misfire_grace_time=120, timezone=pytz.timezone('Europe/Lisbon'))
-scheduler.start() 
