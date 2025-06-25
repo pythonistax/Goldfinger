@@ -107,24 +107,30 @@ group_chats_allowed = [
 ]
 
 ORIGINAL_FILES = [
-    '.git',
+    'a1_master_database_gf.xlsx',
     'bot_serv-GF.py',
     'bot_serv-KT_GF_base.py',
     'convert_notebook.py',
-    'downloads',
     'GF_EOM-Rubric.xlsx',
     'GF_Project_1.ipynb',
     'GF_Project_3.ipynb',
     'GF_Project_5.ipynb',
-    'Goldie call',
-    'logs',
+    'GF_Project_6.ipynb',
+    'Goldie call.txt',
     'GWID_local_GF.xlsx',
+    'KT_Project_6_serv.ipynb',
     'Master_Reconciliation_GF.xlsx',
     'NEF_Project_5_serv.ipynb',
     'README.md',
     'requirements.txt',
     'server_operations_guide.txt',
+    'test_download_files.py',
+    'test_project6_playwright_only.py',
+    'test_project6_playwright.py',
+    'test_project6_simple.py',
     'tv_database_gf.xlsx',
+    'logs',
+    'tmp',
 ]
 
 # ----------------------------------------------------------------- General Functions -------------------------------------------------------------------------------------------------------------
@@ -720,7 +726,7 @@ def Playwright_GF_Project_5(playwright):
 
 def run_gf_project_5_notebook():
     notebook_path = "GF_Project_5.ipynb"
-    output_path = "GF_Project_5_serv_output.ipynb"
+    output_path = "GF_Project_5_output.ipynb"
     try:
         pm.execute_notebook(
             notebook_path,
@@ -999,8 +1005,8 @@ def Playwright_GF_Project_6(playwright: Playwright) -> None:
                 raise
 
 def run_gf_project_6_notebook():
-    notebook_path = "GF_Project_6_serv.ipynb"
-    output_path = "GF_Project_6_serv_output.ipynb"
+    notebook_path = "GF_Project_6.ipynb"
+    output_path = "GF_Project_6_output.ipynb"
     try:
         pm.execute_notebook(
             notebook_path,
