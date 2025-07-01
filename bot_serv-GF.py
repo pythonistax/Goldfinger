@@ -677,27 +677,23 @@ def Playwright_GF_Project_5(playwright):
             saved_reports_tab.click()
             page.wait_for_load_state("networkidle")
 
-            # Open Traffic View 1 (GF-specific)
-            logger.info("Opening Traffic View 1...")
-            traffic_view_selectors = [
-                page.get_by_role("link", name=" Traffic View 1"),
-                page.get_by_text("Traffic View 1"),
-                page.locator("text=Traffic View 1")
-            ]
-            traffic_view_found = False
-            for selector in traffic_view_selectors:
-                try:
-                    selector.wait_for(state="visible", timeout=5000)
-                    selector.click()
-                    traffic_view_found = True
-                    break
-                except Exception as e:
-                    logger.info(f"Selector {selector} failed: {e}")
-                    continue
-            if not traffic_view_found:
-                raise Exception("Could not find Traffic View 1 element")
+            # Open Traffic View (changed from Traffic View 1)
+            logger.info("Opening Traffic View...")
+            page.get_by_role("link", name=" Traffic View").click()
             page.wait_for_load_state("networkidle")
-            page.wait_for_timeout(5000)
+            time.sleep(3)  # Wait for report to load
+
+            # Add Product (tracking2) dimension
+            logger.info("Adding Product (tracking2) dimension...")
+            page.get_by_role("link", name="Add Dimension").click()
+            page.wait_for_timeout(2000)
+            
+            page.get_by_role("textbox", name="Select Next Dimension").click()
+            page.wait_for_timeout(1000)
+            
+            page.get_by_role("option", name="Product (tracking2)").click()
+            page.wait_for_load_state("networkidle")
+            time.sleep(5)  # Wait for report to refresh with new dimension
 
             # Export the report
             logger.info("Initiating download...")
@@ -763,16 +759,7 @@ def run_gf_project_5_notebook():
         return False, traceback_str, None
 
 def output_format_gf5(text):
-    if not text:
-        return text
-    lines = text.split('\n')
-    formatted_lines = []
-    for i, line in enumerate(lines):
-        if i == 0 or ('alert' in line.lower()):
-            formatted_lines.append(f"<b>{line}</b>")
-        else:
-            formatted_lines.append(line)
-    return '\n'.join(formatted_lines)
+    return text
 
 def send_TV_message_Project_5(chat_id, text, token):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -788,40 +775,80 @@ def main_function_Project_5():
     max_retries = 3
     retry_delay = 10  # seconds
 
+    # Check if it's a full hour (minute = 0) for Project 5
+    current_time = datetime.now(pytz.timezone('Europe/Lisbon'))
+    is_full_hour = current_time.minute == 0
+    
+    print(f"🕐 Current time: {current_time.strftime('%H:%M')} - Full hour: {is_full_hour}")
+
+    project5_success = True  # Assume success if not running
+    project6_success = False
+
     for attempt in range(1, max_retries + 1):
         try:
-            print(f"🟢 Attempt {attempt}: Triggered Playwright function for Project 5 and 6")
+            if is_full_hour:
+                print(f"🟢 Attempt {attempt}: Triggered Playwright function for Project 5 and 6")
+            else:
+                print(f"🟢 Attempt {attempt}: Triggered Playwright function for Project 6 only (not full hour)")
+            
             with sync_playwright() as playwright:
-                # Run Project 5
-                Playwright_GF_Project_5(playwright)
-                success, output_path, message = run_gf_project_5_notebook()
-                if success and message:
-                    formatted_message = output_format_gf5(message)
-                    print(f"🚨 Project 5 output_message:\n{formatted_message}")
+                # Run Project 5 only on full hours
+                if is_full_hour:
                     try:
-                        send_TV_message_Project_5("-4873260773", formatted_message, "7710441269:AAFLxf_A5Qjmr02-IzNCo4AbnMRdiUNBr0A")
+                        Playwright_GF_Project_5(playwright)
+                        success, output_path, message = run_gf_project_5_notebook()
+                        if success and message:
+                            formatted_message = output_format_gf5(message)
+                            print(f"🚨 Project 5 output_message:\n{formatted_message}")
+                            try:
+                                send_TV_message_Project_5("-4873260773", formatted_message, "7710441269:AAFLxf_A5Qjmr02-IzNCo4AbnMRdiUNBr0A")
+                                project5_success = True
+                                print("✅ Project 5 completed successfully")
+                            except Exception as e:
+                                print(f"❌ Failed to send Project 5 message to Telegram: {e}")
+                                project5_success = False
+                        else:
+                            print("❌ Failed to get output_message from Project 5 notebook.")
+                            project5_success = False
                     except Exception as e:
-                        print(f"❌ Failed to send message to Telegram: {e}")
-                else:
-                    print("❌ Failed to get output_message from Project 5 notebook.")
-                    raise Exception("No output message from notebook")
+                        print(f"❌ Project 5 failed: {e}")
+                        project5_success = False
 
-                # Run Project 6
-                Playwright_GF_Project_6(playwright)
-                success, output_path, message = run_gf_project_6_notebook()
-                if success and message:
-                    formatted_message = output_format_gf6(message)
-                    print(f"🚨 Project 6 output_message:\n{formatted_message}")
-                    try:
-                        send_TV_message_Project_5("-4933759782", formatted_message, "7710441269:AAFLxf_A5Qjmr02-IzNCo4AbnMRdiUNBr0A")
-                    except Exception as e:
-                        print(f"❌ Failed to send message to Telegram: {e}")
-                else:
-                    print("❌ Failed to get output_message from Project 6 notebook.")
-                    raise Exception("No output message from notebook")
+                # Run Project 6 every time (both :00 and :30)
+                try:
+                    Playwright_GF_Project_6(playwright)
+                    success, output_path, message = run_gf_project_6_notebook()
+                    if success and message:
+                        formatted_message = output_format_gf6(message)
+                        print(f"🚨 Project 6 output_message:\n{formatted_message}")
+                        try:
+                            send_TV_message_Project_5("-4933759782", formatted_message, "7710441269:AAFLxf_A5Qjmr02-IzNCo4AbnMRdiUNBr0A")
+                            project6_success = True
+                            print("✅ Project 6 completed successfully")
+                        except Exception as e:
+                            print(f"❌ Failed to send Project 6 message to Telegram: {e}")
+                            project6_success = False
+                    else:
+                        print("❌ Failed to get output_message from Project 6 notebook.")
+                        project6_success = False
+                except Exception as e:
+                    print(f"❌ Project 6 failed: {e}")
+                    project6_success = False
 
-            print("✅ Project 5 and Project 6 completed")
-            break  # Success, exit the retry loop
+            # Check if we should retry or exit
+            if is_full_hour:
+                if project5_success and project6_success:
+                    print("✅ Both Project 5 and Project 6 completed successfully")
+                    break
+                else:
+                    raise Exception(f"Project failures - P5: {project5_success}, P6: {project6_success}")
+            else:
+                if project6_success:
+                    print("✅ Project 6 completed successfully (Project 5 skipped - not full hour)")
+                    break
+                else:
+                    raise Exception("Project 6 failed")
+
         except Exception as e:
             print(f"❌ Error in attempt {attempt}: {str(e)}")
             import traceback
