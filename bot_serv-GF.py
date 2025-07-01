@@ -759,7 +759,17 @@ def run_gf_project_5_notebook():
         return False, traceback_str, None
 
 def output_format_gf5(text):
-    return text
+    if not text:
+        return text
+    lines = text.split('\n')
+    formatted_lines = []
+    for line in lines:
+        # Check if line contains the specific words that should NOT be bold
+        if any(word in line for word in ["Initials", "Prepaid", "SUCAR"]):
+            formatted_lines.append(line)  # Don't make it bold
+        else:
+            formatted_lines.append(f"<b>{line}</b>")  # Make it bold
+    return '\n'.join(formatted_lines)
 
 def send_TV_message_Project_5(chat_id, text, token):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
