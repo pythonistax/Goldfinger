@@ -20,6 +20,11 @@ scp -r root@208.76.221.81:/root/gf_bot/* .
 scp -r ./* root@208.76.221.81:/root/gf_bot/
 ```
 
+### Pull databases from server
+```bash
+scp root@208.76.221.81:/root/gf_bot/*.xlsx .
+```
+
 ## 2. Daily Bot Startup Procedure
 ```bash
 # Start virtual display
