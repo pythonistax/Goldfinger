@@ -113,6 +113,7 @@ ORIGINAL_FILES = [
     'convert_notebook.py',
     'GF_EOM-Rubric.xlsx',
     'GF_Project_1.ipynb',
+    'GF_Project_2.ipynb',
     'GF_Project_3.ipynb',
     'GF_Project_5.ipynb',
     'GF_Project_6.ipynb',
@@ -764,8 +765,11 @@ def output_format_gf5(text):
     lines = text.split('\n')
     formatted_lines = []
     for line in lines:
+        # Check if line contains "ALERT" - always make these bold
+        if "ALERT" in line:
+            formatted_lines.append(f"<b>{line}</b>")  # Make it bold
         # Check if line contains the specific words that should NOT be bold
-        if any(word in line for word in ["Initials", "Prepaid", "SUCAR"]):
+        elif any(word in line for word in ["Initials", "Prepaid", "SUCAR"]):
             formatted_lines.append(line)  # Don't make it bold
         else:
             formatted_lines.append(f"<b>{line}</b>")  # Make it bold
@@ -876,6 +880,22 @@ def main_function_Project_5():
     # Start the scheduler for Project 5 and Project 6 - runs at :01 and :31
 scheduler.add_job(main_function_Project_5, 'cron', hour='14-23, 0-4', minute='*/30', misfire_grace_time=120, timezone=pytz.timezone('Europe/Lisbon'))
 scheduler.start() 
+
+# Project 2
+async def call_Project_2_GF_reply(update, context):
+    chat_id = update.message.chat_id
+    group_chat_name = update.message.chat.title if update.message.chat else None
+    if group_chat_name not in group_chats_allowed:
+        print("❌ Bot not allowed in this chat")
+        return
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="What date range would you like to consider? (Please reply to this message with the format MM/DD/YYYY - MM/DD/YYYY)"
+    )
+
+
+
+
 
 # ----------------------------------------------------------   GF PROJECT 6  -------------------------------------------------------------------------------------------------------------
 def Playwright_GF_Project_6(playwright: Playwright) -> None:
@@ -1124,6 +1144,444 @@ async def handle_Project_6_GF(update: Update, context: ContextTypes.DEFAULT_TYPE
         await context.bot.send_message(chat_id=chat_id, text=error_msg)
 
 # ----------------------------------------------------------------- Message Handlers -------------------------------------------------------------------------------------------------------------
+def run_GF_project_notebook2():
+    notebook_path = "GF_Project_2.ipynb"
+    output_path = "GF_Project_2_output.ipynb"
+    try:
+        pm.execute_notebook(
+            notebook_path,
+            output_path,
+            kernel_name="python3",
+            cwd=os.getcwd()
+        )
+        print("✅ KT 2 notebook executed successfully.")
+        message = None
+        with open(output_path, 'r', encoding='utf-8') as f:
+            nb = nbformat.read(f, as_version=4)
+        for cell in nb['cells']:
+            if cell['cell_type'] == 'code' and 'print(final_report)' in cell.get('source', ''):
+                for output in cell.get('outputs', []):
+                    if 'text' in output:
+                        message = output['text'].strip()
+                        break
+                    elif 'data' in output and 'text/plain' in output['data']:
+                        message = output['data']['text/plain'].strip()
+                        break
+            if message:
+                break
+        if message:
+            print(f"✅ Message extracted:\n{message}")
+        else:
+            print("⚠️ Warning: No message found in any print(message) cell.")
+        return True, output_path, message
+    except Exception as e:
+        traceback_str = traceback.format_exc()
+        print(f"❌ KT notebook failed:\n{traceback_str}")
+        return False, traceback_str, None
+
+def output_format_gf2(text):
+    if not text:
+        return text
+    lines = text.split('\n')
+    formatted_lines = []
+    
+    for i, line in enumerate(lines):
+        if i == 0:
+            # Bold the first line
+            formatted_lines.append(f"<b>{line}</b>")
+        elif ":" in line and "customers" in line.lower():
+            # Bold everything after ":" and before "customers"
+            colon_index = line.find(":")
+            customers_index = line.lower().find("customers")
+            
+            if colon_index != -1 and customers_index != -1 and colon_index < customers_index:
+                before_colon = line[:colon_index + 1]  # Include the colon
+                after_colon_before_customers = line[colon_index + 1:customers_index]
+                after_customers = line[customers_index:]
+                formatted_line = f"{before_colon}<b>{after_colon_before_customers}</b>{after_customers}"
+                formatted_lines.append(formatted_line)
+            else:
+                formatted_lines.append(line)
+        else:
+            formatted_lines.append(line)
+    
+    return '\n'.join(formatted_lines)
+
+async def send_long_message(context, chat_id, text, max_length=4096):
+    """
+    Splits and sends a long message across multiple Telegram messages.
+    Ensures HTML tags are not broken across message boundaries.
+    
+    Args:
+        context: Telegram bot context
+        chat_id: Target chat ID
+        text: The text to send
+        max_length: Maximum length per message (Telegram limit is 4096)
+    """
+    if len(text) <= max_length:
+        # Message is short enough, send as single message
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=text,
+            parse_mode="HTML"
+        )
+        return
+    
+    # Split the message into chunks, being careful with HTML tags
+    messages = []
+    current_message = ""
+    lines = text.split('\n')
+
+async def Playwright_Vrio_GF_Project_2_async(playwright, current_date):
+    max_retries = 3
+    retry_delay = 5  # seconds
+
+    filename = f"GF_Affiliate_PnL_Export_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+    final_path = os.path.join(DOWNLOAD_DIR, filename)
+
+    for attempt in range(1, max_retries + 1):
+        browser = None
+        context = None
+        try:
+            print(f"🟢 Attempt {attempt}: Starting GF Affiliate P&L data extraction...")
+            
+            browser = await playwright.chromium.launch(
+                headless=False,
+                args=[
+                    '--no-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--disable-web-security',
+                    '--disable-extensions',
+                    '--disable-plugins',
+                    '--remote-debugging-port=9222',
+                    '--disable-features=VizDisplayCompositor',
+                    '--disable-software-rasterizer',
+                    '--disable-default-apps',
+                    '--disable-sync',
+                    '--disable-translate',
+                    '--hide-scrollbars',
+                    '--metrics-recording-only',
+                    '--mute-audio',
+                    '--no-first-run',
+                    '--safebrowsing-disable-auto-update'
+                ] if IS_SERVER else [
+                    '--disable-dev-shm-usage',
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-gpu'
+                ]
+            )
+            
+            context = await browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                accept_downloads=True
+            )
+            page = await context.new_page()
+
+            # Go directly to the report page
+            print("Navigating to GF Affiliate P&L report page...")
+            await page.goto("https://goldie.vrio.app/report/run/106/171", wait_until="networkidle")
+
+            # Login with retry logic
+            login_success = False
+            for login_attempt in range(3):
+                try:
+                    print(f"Login attempt {login_attempt + 1}...")
+                    await page.get_by_placeholder("email").click()
+                    await page.get_by_placeholder("email").fill("team123@team123proton.com")
+                    await page.get_by_placeholder("password").click()
+                    await page.get_by_placeholder("password").fill("GFTeam123!@")
+                    await page.get_by_role("button", name="Login").click()
+                    await page.wait_for_load_state("networkidle")
+                    login_success = True
+                    break
+                except Exception as e:
+                    print(f"Login attempt {login_attempt + 1} failed: {e}")
+                    if login_attempt < 2:
+                        await page.reload()
+                        await page.wait_for_load_state("networkidle", timeout=10000)
+            
+            if not login_success:
+                raise Exception("Failed to login after multiple attempts")
+
+            # Ensure we're on the report page after login
+            print("Ensuring we're on the report page after login...")
+            await page.goto("https://goldie.vrio.app/report/run/106/171", wait_until="networkidle")
+            
+            # Wait for report to fully load with proper detection
+            print("Waiting for report to load completely...")
+            
+            # Wait for More Options button to appear (indicates page is loaded)
+            try:
+                await page.get_by_role("button", name="More Options ").wait_for(state="visible", timeout=20000)
+                print("✅ More Options button found - page structure loaded")
+            except Exception as e:
+                print(f"⚠️ More Options button not found: {e}")
+            
+            # Wait for any loading spinners to disappear
+            loading_selectors = [
+                ".loading", ".spinner", "[class*='loading']", "[class*='spinner']", ".fa-spinner",
+                ".loading-overlay", ".progress", "[class*='progress']"
+            ]
+            for selector in loading_selectors:
+                try:
+                    await page.wait_for_selector(selector, state="hidden", timeout=3000)
+                    print(f"✅ Loading indicator {selector} disappeared")
+                except:
+                    pass  # Loading indicator might not exist
+            
+            # Wait for report data elements to be visible with better detection
+            print("Waiting for report data to appear...")
+            data_selectors = [
+                "table tbody tr", "table", ".report-table", ".data-table", 
+                "[class*='table']", ".chart", "[class*='chart']", 
+                ".report-content", "[class*='report']", ".data-row"
+            ]
+            
+            data_found = False
+            for selector in data_selectors:
+                try:
+                    await page.wait_for_selector(selector, state="visible", timeout=8000)
+                    print(f"✅ Report data element found: {selector}")
+                    data_found = True
+                    break
+                except:
+                    continue
+            
+            if not data_found:
+                print("⚠️ Warning: Could not find specific data elements, proceeding anyway...")
+            
+            # Wait for network to be idle (all requests completed)
+            await page.wait_for_load_state("networkidle", timeout=10000)
+            print("✅ Report loading complete")
+
+            # --- Date Range Selection (Human-like) ---
+            print(f"Selecting date range: {current_date}")
+            try:
+                # Look for date input field (common selectors)
+                date_selectors = [
+                    "#rb_date_range",
+                    "input[placeholder*='date']",
+                    "input[name*='date']",
+                    ".date-input",
+                    "[data-testid='date-input']"
+                ]
+                
+                date_input_found = False
+                for selector in date_selectors:
+                    try:
+                        date_input = page.locator(selector)
+                        await date_input.wait_for(state="visible", timeout=5000)
+                        await date_input.click()
+                        await date_input.fill("")  # Clear the input field
+                        await date_input.type(current_date, delay=100)  # Human-like typing
+                        await date_input.press("Tab")  # Move focus away
+                        
+                        # Verify the date was actually set
+                        try:
+                            input_value = await date_input.input_value()
+                            if current_date in input_value or input_value in current_date:
+                                print(f"✅ Date input successfully filled: {input_value}")
+                            else:
+                                print(f"⚠️ Date may not have been set correctly. Expected: {current_date}, Got: {input_value}")
+                        except:
+                            print(f"✅ Date input filled with: {current_date}")
+                        
+                        date_input_found = True
+                        break
+                    except Exception as e:
+                        print(f"Date selector {selector} failed: {e}")
+                        continue
+                
+                if not date_input_found:
+                    print("⚠️ Warning: Could not find date input field, proceeding with default date range")
+                else:
+                    # Wait for date processing and data refresh (only if date was changed)
+                    print("Waiting for date selection to process...")
+                    
+                    # Wait for any loading indicators to appear and disappear after date change
+                    try:
+                        # Check if loading appears first
+                        await page.wait_for_selector(".loading, .spinner, [class*='loading']", state="visible", timeout=2000)
+                        print("🔄 Date processing detected")
+                        # Then wait for it to disappear
+                        await page.wait_for_selector(".loading, .spinner, [class*='loading']", state="hidden", timeout=10000)
+                        print("✅ Date processing loading complete")
+                    except:
+                        # If no loading indicator, just wait for network idle
+                        await asyncio.sleep(2)  # Brief wait for any processing to start
+                    
+                    # Wait for data to refresh after date change
+                    await page.wait_for_load_state("networkidle", timeout=10000)
+                    print("✅ Date processing complete")
+                
+            except Exception as e:
+                print(f"⚠️ Date selection failed: {e}, proceeding with default range")
+
+            # --- Final check before export ---
+            print("Performing final checks before download...")
+            await page.wait_for_load_state("networkidle", timeout=10000)
+            
+            # --- Export the report ---
+            print("Initiating download...")
+            
+            # Click More Options and wait for menu to appear
+            await page.get_by_role("button", name="More Options ").click()
+            
+            # Wait for export option to be visible and clickable
+            export_link = page.get_by_role("link", name="Export Report")
+            await export_link.wait_for(state="visible", timeout=10000)
+            
+            # Ensure the export link is fully loaded and clickable
+            await export_link.wait_for(state="attached", timeout=5000)
+            
+            async with page.expect_download(timeout=30000) as download_info:
+                print("Clicking Export Report...")
+                await export_link.click()
+            
+            download = await download_info.value
+            await download.save_as(final_path)
+            print(f"✅ File downloaded and saved as: {final_path}")
+            
+            # Verify file is not empty
+            if os.path.exists(final_path):
+                file_size = os.path.getsize(final_path)
+                print(f"📊 Downloaded file size: {file_size} bytes")
+                if file_size < 100:  # Very small file might indicate empty/error
+                    print("⚠️ Warning: Downloaded file is very small, might be empty or contain errors")
+                else:
+                    print("✅ File appears to have data")
+            else:
+                print("❌ Warning: Downloaded file not found")
+
+            print("✅ GF Affiliate P&L extraction completed successfully.")
+            return final_path  # Success, exit the retry loop
+
+        except Exception as e:
+            print(f"Attempt {attempt} failed: {str(e)}")
+            if attempt < max_retries:
+                print(f"Retrying in {retry_delay} seconds...")
+                await asyncio.sleep(retry_delay)
+            else:
+                print("All retry attempts failed")
+                raise
+        finally:
+            if context:
+                try:
+                    await context.close()
+                except:
+                    pass
+            if browser:
+                try:
+                    await browser.close()
+                except:
+                    pass
+
+
+
+def is_valid_date(date_str1, date_str2):
+    try:
+        # Try to parse the date string
+        parsed_date1 = datetime.strptime(date_str1, "%m/%d/%Y")
+        parsed_date2 = datetime.strptime(date_str2, "%m/%d/%Y")
+        return True
+    except ValueError:
+        return False
+
+async def call_Project_2_GF(update, context, current_date):
+    chat_id = update.message.chat_id
+    group_chat_name = update.message.chat.title if update.message.chat else None
+    print(f"🔍 Calling Project 2 KT")
+    print(update)
+    if group_chat_name not in group_chats_allowed:
+        print("❌ Bot not allowed in this chat")
+        return
+    try:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="⏳ Extracting and analysing your data, please wait..."
+        )
+        async with async_playwright() as playwright:
+            await Playwright_Vrio_GF_Project_2_async(playwright, current_date)
+        success, output_path, message = run_GF_project_notebook2()
+        if success:
+            clean_text = output_format_gf2(message)
+            await send_long_message(context, chat_id, clean_text)
+        else:
+            print(f"❌ Notebook execution failed: {output_path}")
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"❌ Failed to process the file: {output_path}"
+            )
+    except Exception as e:
+        error_msg = str(e)
+        print(f"❌ Error in call_Project_2_KT: {error_msg}")
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"❌ An error occurred: {error_msg}"
+        )
+    current_dir = os.getcwd()
+    delete_unwanted_files(current_dir, ORIGINAL_FILES)
+
+
+async def handle_reply_Project_2_GF(update, replied_to_text, context):
+    date_range = update.message.text
+    chat_id = update.message.chat_id
+    current_date = datetime.now()
+    
+    # Format validation
+    if not re.match(r'^\d{2}/\d{2}/\d{4} - \d{2}/\d{2}/\d{4}$', date_range):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="❌ Invalid date range format. Please reply again using the format MM/DD/YYYY - MM/DD/YYYY"
+        )
+        return
+    
+    # Date validation
+    start_date, end_date = date_range.split(" - ")
+    if not is_valid_date(start_date, end_date):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="❌ Invalid dates provided. Please make sure both dates are valid. Please reply again."
+        )
+        return
+    
+    start_dt = datetime.strptime(start_date, "%m/%d/%Y")
+    end_dt = datetime.strptime(end_date, "%m/%d/%Y")
+    
+    # Various validations (future dates, order, 6-month limit)
+    if start_dt > end_dt:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="❌ Start date must be before end date. Please reply again."
+        )
+        return
+    
+    if start_dt > current_date or end_dt > current_date:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="❌ Date range cannot be in the future. Please reply again."
+        )
+        return
+    
+    six_months_ago = current_date - relativedelta(months=6)
+    if start_dt < six_months_ago or end_dt < six_months_ago:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="❌ Date range cannot be more than 6 months ago. Please reply again."
+        )
+        return
+
+    # Success path
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="✔ Date range is valid, fetching PNL for the selected date range..."
+    )
+    clean_date_range = date_range.replace("/", "-")
+    await call_Project_2_GF(update, context, clean_date_range)
+
+
 async def handle_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """This function will be called for every non-command text message"""
     try:
@@ -1138,6 +1596,14 @@ async def handle_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE
                 context.chat_data['recent_mentions'] = {}
             context.chat_data['recent_mentions'][chat_id] = datetime.now()
             logger.info(f"🤖 Bot mentioned in chat {chat_id}")
+            
+        # Check for reply to date range prompt
+        if update.message.reply_to_message:
+            replied = update.message.reply_to_message
+            replied_to_text = replied.text
+            if "What date range would you like to consider? (Please reply to this message with the format MM/DD/YYYY - MM/DD/YYYY)" == replied_to_text:
+                await handle_reply_Project_2_GF(update, replied_to_text, context)
+                return
             
     except Exception as e:
         logger.error(f"Error in handle_all_messages: {e}")
@@ -1231,6 +1697,9 @@ if __name__ == "__main__":
     # 2. Command handlers
     app.add_handler(CommandHandler("eomfees", call_Project_3_GF))
     
+
+    # Command handler for Project 2
+    app.add_handler(CommandHandler("pubpnl", call_Project_2_GF_reply))
     # 3. Document handler (the main entry point for files)
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
